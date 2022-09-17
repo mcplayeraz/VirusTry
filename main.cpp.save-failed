@@ -44,7 +44,7 @@ int WINAPI WinMain (HINSTANCE hThisInstance,
     }
 }
 
-void* Thread_play(void* args)
+void* Thread(void* args)
 {
     LPCSTR sound;
     while (1) {
@@ -70,13 +70,14 @@ void* Thread_play(void* args)
     }
 }
 
-void* Thread_show(void* args)
+void showicons()
 {
+    pthread_t pht;
     HWND hwnd = GetDesktopWindow();
     HDC hdc = GetWindowDC(hwnd);
     POINT point;
     LPCSTR icon;
-
+    pthread_create(&pht, NULL, Thread, NULL);
     while (1)
     {
         GetCursorPos(&point);
@@ -84,50 +85,30 @@ void* Thread_show(void* args)
         {
         case 0:
             icon = IDI_WARNING;
+            sound = "SystemExclamation";
             break;
         case 1:
             icon = IDI_ERROR;
+            sound = "SystemAsterisk";
             break;
         case 2:
             icon = IDI_QUESTION;
+            sound = "SystemQuestion";
             break;
         case 3:
             icon = IDI_SHIELD;
+            sound = "SystemHand";
             break;
         case 4:
             icon = IDI_WINLOGO;
+            sound = "SystemStart";
             break;
         }
+        CreateThread()
         //PlaySoundA(sound, NULL, SND_SYNC);
         DrawIcon(hdc, point.x, point.y, LoadIcon(NULL, icon));
-        Sleep(10);
+        Sleep(1000);
     }
-}
-
-void* Thread_color(void* args)
-{
-    HWND hwnd = GetDesktopWindow();
-    HDC hdc = GetWindowDC(hwnd);
-    while (1)
-    {
-        BitBlt(hdc, 0, 0,
-               GetSystemMetrics(SM_CXSCREEN),
-               GetSystemMetrics(SM_CYSCREEN),
-               hdc, 0, 0,
-               DSTINVERT
-               );
-               Sleep(500);
-    }
-}
-
-void showicons()
-{
-    pthread_t pht;
-
-    pthread_create(&pht, NULL, Thread_play, NULL);
-    pthread_create(&pht, NULL, Thread_show, NULL);
-    pthread_create(&pht, NULL, Thread_color, NULL);
-
     pthread_exit(NULL);
 }
 
