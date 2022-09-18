@@ -39,8 +39,13 @@
 			<Add library="kernel32" />
 			<Add library="comctl32" />
 			<Add library="libwinmm.a" />
+			<Add library="libole32.a" />
+			<Add library="libdxguid.a" />
 		</Linker>
 		<Unit filename="main.cpp" />
+		<Unit filename="script.rc">
+			<Option compilerVar="WINDRES" />
+		</Unit>
 		<Extensions>
 			<lib_finder disable_auto="1" />
 		</Extensions>

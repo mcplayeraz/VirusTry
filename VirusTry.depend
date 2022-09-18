@@ -1,9 +1,16 @@
 # depslib dependency file v1.0
-1663465337 source:e:\byworld\virustry\main.cpp
+1663487328 source:e:\byworld\virustry\main.cpp
 	<pthread.h>
 	<tchar.h>
 	<windows.h>
 	<shlobj.h>
 	<stdio.h>
 	<stdlib.h>
+	"resource.h"
+
+1663481620 e:\byworld\virustry\sound.h
+
+1663489444 source:e:\byworld\virustry\script.rc
+
+1663487304 e:\byworld\virustry\resource.h
 
