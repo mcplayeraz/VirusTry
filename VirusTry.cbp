@@ -11,6 +11,7 @@
 				<Option object_output="obj/Debug/" />
 				<Option type="1" />
 				<Option compiler="gcc" />
+				<Option use_console_runner="0" />
 				<Compiler>
 					<Add option="-g" />
 				</Compiler>
@@ -32,10 +33,12 @@
 			<Add option="-Wall" />
 		</Compiler>
 		<Linker>
+			<Add option="-lpthread" />
 			<Add library="gdi32" />
 			<Add library="user32" />
 			<Add library="kernel32" />
 			<Add library="comctl32" />
+			<Add library="libwinmm.a" />
 		</Linker>
 		<Unit filename="main.cpp" />
 		<Extensions>

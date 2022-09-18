@@ -1,5 +1,6 @@
 # depslib dependency file v1.0
-1663403070 source:e:\byworld\virustry\main.cpp
+1663465337 source:e:\byworld\virustry\main.cpp
+	<pthread.h>
 	<tchar.h>
 	<windows.h>
 	<shlobj.h>
