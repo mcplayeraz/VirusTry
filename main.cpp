@@ -12,7 +12,6 @@
 #include <stdlib.h>
 #include <mmsystem.h>
 #pragma comment(lib, "winmm.lib")
-//#include "resource.h"
 
 HINSTANCE g_hThisInstance;
 
